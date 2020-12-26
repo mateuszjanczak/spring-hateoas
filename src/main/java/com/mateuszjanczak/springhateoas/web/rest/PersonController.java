@@ -1,15 +1,19 @@
 package com.mateuszjanczak.springhateoas.web.rest;
 
 import com.mateuszjanczak.springhateoas.domain.Person;
+import com.mateuszjanczak.springhateoas.dto.PersonRequest;
 import com.mateuszjanczak.springhateoas.service.PersonService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.hateoas.Link;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -46,4 +50,29 @@ public class PersonController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/persons")
+    public ResponseEntity<?> savePerson(@RequestBody PersonRequest personRequest) {
+        try {
+            Person person = personService.save(personRequest);
+            EntityModel<Person> personResource = EntityModel.of(person,
+                    linkTo(methodOn(PersonController.class).getPersonById(person.getId())).withSelfRel());
+
+            return ResponseEntity
+                    .created(new URI(personResource.getRequiredLink(IanaLinkRelations.SELF).getHref()))
+                    .body(personResource);
+        } catch (URISyntaxException e) {
+            return ResponseEntity.badRequest().body("Unable to create " + personRequest);
+        }
+    }
+
+    @PutMapping("/persons/{id}")
+    public ResponseEntity<EntityModel<Person>> updatePerson(@PathVariable int id, @RequestBody PersonRequest personRequest) {
+        personService.update(id, personRequest);
+        return personService.getById(id)
+                .map(person -> EntityModel.of(person,
+                        linkTo(methodOn(PersonController.class).getPersonById(person.getId())).withSelfRel(),
+                        linkTo(methodOn(PersonController.class).getPersons()).withRel("persons")))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

@@ -1,6 +1,7 @@
 package com.mateuszjanczak.springhateoas.service;
 
 import com.mateuszjanczak.springhateoas.domain.Person;
+import com.mateuszjanczak.springhateoas.dto.PersonRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,5 +28,38 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public Optional<Person> getById(int id) {
         return personList.stream().filter(person -> person.getId() == id).findFirst();
+    }
+
+    @Override
+    public Person save(PersonRequest personRequest) {
+        int ID = personList.isEmpty() ? 1 : personList.stream().mapToInt(Person::getId).max().getAsInt() + 1;
+
+        Person person = Person.builder()
+                .id(ID)
+                .firstName(personRequest.getFirstName())
+                .lastName(personRequest.getLastName())
+                .email(personRequest.getEmail())
+                .gender(personRequest.getGender())
+                .creditCardType(personRequest.getCreditCardType())
+                .creditCardNumber(personRequest.getCreditCardNumber())
+                .build();
+
+        personList.add(person);
+
+        return person;
+    }
+
+    @Override
+    public Optional<Person> update(int id, PersonRequest personRequest) {
+        return personList.stream()
+                .filter(person -> person.getId() == id)
+                .peek(person -> {
+                    person.setFirstName(personRequest.getFirstName());
+                    person.setLastName(personRequest.getLastName());
+                    person.setGender(personRequest.getGender());
+                    person.setCreditCardType(personRequest.getCreditCardType());
+                    person.setCreditCardNumber(personRequest.getCreditCardNumber());
+                })
+                .findFirst();
     }
 }
